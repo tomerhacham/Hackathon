@@ -6,7 +6,6 @@ import time
 import socket
 import sys
 from typing import List
-
 #region Global Variables
 Group_A_threads=[]          #will hold tuple of (threadObject,clientName)
 Group_A_receive_chars=[]    #['a','b,'a',...]
@@ -36,12 +35,12 @@ def init_Server(server_ip,tcp_port):
             print('No connection has been made to the server, continue broadcasting...')
             continue
         sendBroadCastMessage(PrepareWelcomeMessage(),sockets)
-        print("Welcome message sent")
+        #print("Welcome message sent")
         StartFlag=True
-        print('Game started.')
+        #print('Game started.')
         time.sleep(10)
         StartFlag = False
-        print('Stop pressing!!!')
+        #print('Stop pressing!!!')
 
         all_clients=Groups[0]+Groups[1]
         all_threads:List[threading.Thread]=[x[0] for x in all_clients]
@@ -52,7 +51,7 @@ def init_Server(server_ip,tcp_port):
         WinnerMessage = GenerateWinningMessage(len(Scores[0]), len(Scores[1]))
         print(WinnerMessage)
         sendBroadCastMessage(WinnerMessage,sockets)
-        print("Winners message sent")
+        #print("Winners message sent")
 
         ResetGame(sockets)
         print('Game Over, sending out offer requests...')
@@ -64,7 +63,7 @@ def TCP_greeter(TCP_greeter_socket,server_ip,tcp_port):
     selector = selectors.DefaultSelector()
     selector.register(TCP_greeter_socket, selectors.EVENT_READ, data=None)
 
-    print('listening on', (server_ip, tcp_port))
+    #print('listening on', (server_ip, tcp_port))
 
     elapses = time.time() + 10
     i=0
@@ -98,7 +97,7 @@ def createTCPSocket(server_ip,tcp_port):
 #region Client Handling - Threading
 def accept_Handler(sock):
     conn, addr = sock.accept()
-    print('accepted connection from', addr)
+    #print('accepted connection from', addr)
     conn.setblocking(False)
     return conn, addr
 def registerClient(conn,addr,group_thread_list,group_char_list)->threading.Thread:
@@ -110,7 +109,7 @@ def Handle_Client(conn, addr,group_list,group_score):
     conn.setblocking(True)
     conn.settimeout(10)
     client_name = decode(conn.recv(1024))
-    print(client_name)
+    #print(client_name)
     group_list.append((threading.current_thread(),client_name))
     while not StartFlag:
         pass
@@ -181,12 +180,25 @@ def ResetGame(clientSockets):
 def encode(str):
     return str.encode('utf-8')
 def decode(data):
-    return data.decode('utf-8')
+    msg=None
+    try:
+        msg= data.decode('utf-8')
+    except Exception:
+        try:
+            msg=data.decode('ascii')
+        except Exception:
+            try:
+                msg = data.decode('utf-16')
+            except Exception as e:
+                print(e)
+    finally:
+        return data.decode('utf-8')
+
 #endregion
 def args_parsing():
     #Parsing arguments
     parser = argparse.ArgumentParser(description='Tread Per client version for battle royal')
-    parser.add_argument('-ip',type=str,action="store",default='192.168.0.110',required=False,help='server ip')
+    parser.add_argument('-ip',type=str,action="store",default='10.100.102.35',required=False,help='server ip')
     parser.add_argument('-p',type=int,action="store",default=7777,required=False,help='tcp port to listen')
     args = parser.parse_args()
     return args

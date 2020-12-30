@@ -19,16 +19,16 @@ def start_client(team_name):
         startGame(sock,team_name)
         stop_threads=False
 def connectToServer(server_address, tcp_port):
-    print('trying to connect')
+    #print('trying to connect')
     print(f'Received offer from {server_address}, attempting to connect...')
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientSocket.connect((server_address, tcp_port))
-    print(f'connected to {server_address}')
+    #print(f'connected to {server_address}')
     return clientSocket
 def recieveData(sock):
     try:
         msg = sock.recv(2048)
-        print(decode(msg))
+        #print(decode(msg))
     except:
         print('problem with the socket')
     finally:
@@ -73,7 +73,7 @@ def searchForServer(udp_port=13117):
         data, (addr,port) = client.recvfrom(1024)
         if isOfferMessage(data):
             tcp_port = int(binascii.hexlify(data)[10:],16)
-            print(f'port:{tcp_port}')
+            #print(f'port:{tcp_port}')
             return addr,tcp_port
 def isOfferMessage(data):
     return binascii.hexlify(data)[0:10].__eq__(OFFER_PREFIX)
@@ -81,8 +81,20 @@ def isOfferMessage(data):
 def encode(string)->bytearray:
     return string.encode('utf-8')
 
-def decode(bytes)->str:
-    return bytes.decode('utf-8')
+def decode(data)->str:
+    msg = None
+    try:
+        msg = data.decode('utf-8')
+    except Exception:
+        try:
+            msg = data.decode('ascii')
+        except Exception:
+            try:
+                msg = data.decode('utf-16')
+            except Exception as e:
+                print(e)
+    finally:
+        return data.decode('utf-8')
 #endregion
 #region Utils
 class KBHit:

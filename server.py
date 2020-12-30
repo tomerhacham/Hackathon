@@ -116,7 +116,7 @@ def Handle_Client(conn, addr,group_list,group_score):
     while StartFlag:
         try:
             data = conn.recv(1024)
-            print(decode(data))
+            #print(decode(data))
             group_score.append(data)
         except socket.timeout:
             continue
@@ -142,7 +142,7 @@ def GenerateWinningMessage(ScoreA,ScoreB):
     winner=None
     names=None
     #names = [x[1] for x in (Group_A_threads+Group_B_threads)]
-    print(f'winning messages names:{names}')
+    #print(f'winning messages names:{names}')
     if ScoreA>ScoreB:
         winner='Group 1'
         names = [x[1] for x in Group_A_threads]
@@ -198,7 +198,7 @@ def decode(data):
 def args_parsing():
     #Parsing arguments
     parser = argparse.ArgumentParser(description='Tread Per client version for battle royal')
-    parser.add_argument('-ip',type=str,action="store",default='10.100.102.35',required=False,help='server ip')
+    parser.add_argument('-ip',type=str,action="store",default='10.100.102.41',required=False,help='server ip')
     parser.add_argument('-p',type=int,action="store",default=7777,required=False,help='tcp port to listen')
     args = parser.parse_args()
     return args

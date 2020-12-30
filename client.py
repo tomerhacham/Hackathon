@@ -28,7 +28,7 @@ def connectToServer(server_address, tcp_port):
 def recieveData(sock):
     try:
         msg = sock.recv(2048)
-        #print(decode(msg))
+        print(decode(msg))
     except:
         print('problem with the socket')
     finally:

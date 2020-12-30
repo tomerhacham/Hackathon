@@ -128,6 +128,7 @@ def Handle_Client(conn, addr,group_list,group_score):
 def PrepareWelcomeMessage():
         groupA_names = [x[1] for x in Group_A_threads]
         groupB_names = [x[1] for x in Group_B_threads]
+        print('')
         msg = "Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n==\n"
         for name in groupA_names:
             msg = msg + name + '\n'
@@ -192,7 +193,7 @@ def decode(data):
             except Exception as e:
                 print(e)
     finally:
-        return data.decode('utf-8')
+        return msg
 
 #endregion
 def args_parsing():

@@ -94,7 +94,7 @@ def decode(data)->str:
             except Exception as e:
                 print(e)
     finally:
-        return data.decode('utf-8')
+        return msg
 #endregion
 #region Utils
 class KBHit:

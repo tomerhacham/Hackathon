@@ -6,7 +6,10 @@ import time
 import socket
 import sys
 from typing import List
+from scapy.all import get_if_addr
 #region Global Variables
+from scapy.config import conf
+
 Group_A_threads=[]          #will hold tuple of (threadObject,clientName)
 Group_A_receive_chars=[]    #['a','b,'a',...]
 Group_B_threads=[]          #will hold tuple of (threadObject,clientName)
@@ -21,6 +24,12 @@ StartFlag = False
 #endregion
 
 def init_Server(server_ip,tcp_port):
+    '''
+    main function for the server
+    :param server_ip: string of the server ip
+    :param tcp_port: int, port of the tcp greeter socket
+    :return:
+    '''
     global StartFlag
     payload = binascii.unhexlify(f'FEEDBEEF02{hex(tcp_port)[2:]}')
     UDP_socket = createUDPSocket()
@@ -58,6 +67,13 @@ def init_Server(server_ip,tcp_port):
 
 #region Sockets functions
 def TCP_greeter(TCP_greeter_socket,server_ip,tcp_port):
+    '''
+    main thread will listen to the TCP port
+    :param TCP_greeter_socket: tcp socket
+    :param server_ip: string, server ip
+    :param tcp_port: int, TCP port
+    :return:
+    '''
     TCP_greeter_socket.listen()
     TCP_greeter_socket.setblocking(False)
     selector = selectors.DefaultSelector()
@@ -75,6 +91,14 @@ def TCP_greeter(TCP_greeter_socket,server_ip,tcp_port):
                 registerClient(conn, addr, Groups[i % 2], Scores[i % 2])
                 i = i+1
 def UDP_broadcast(UDP_socket,server_ip,payload,destination_port=13117):
+    '''
+    secondary thread will broadcast UDP offer packets
+    :param UDP_socket:
+    :param server_ip: string, UDP socket object
+    :param payload: payload to be send in the UDP packet
+    :param destination_port:int, UDP desination port
+    :return:
+    '''
     ar=server_ip.split('.')
     ar[3]='255'
     broadcast_address='.'.join(ar)
@@ -84,11 +108,21 @@ def UDP_broadcast(UDP_socket,server_ip,payload,destination_port=13117):
         time.sleep(1)
     #print('finish broadcast')
 def createUDPSocket():
+    '''
+    initiate UDP socket
+    :return: UDP socket object
+    '''
     UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     UDP_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     UDP_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     return UDP_socket
 def createTCPSocket(server_ip,tcp_port):
+    '''
+    initiate TCP socket object
+    :param server_ip: string, server ip
+    :param tcp_port: int, TCP port
+    :return:
+    '''
     TCP_greeter_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     TCP_greeter_socket.bind(("", tcp_port))
     return TCP_greeter_socket
@@ -96,15 +130,36 @@ def createTCPSocket(server_ip,tcp_port):
 
 #region Client Handling - Threading
 def accept_Handler(sock):
+    '''
+    accept new TCP connection came from the selector
+    :param sock:TCP master socket
+    :return: slave TCP socket and address of the client
+    '''
     conn, addr = sock.accept()
     #print('accepted connection from', addr)
     conn.setblocking(False)
     return conn, addr
 def registerClient(conn,addr,group_thread_list,group_char_list)->threading.Thread:
+    '''
+    register new connection from the client and start new thread to handle it
+    :param conn:client socket
+    :param addr:client address
+    :param group_thread_list:group to be registers
+    :param group_char_list: group of the accumulated chars
+    :return:
+    '''
     sockets.append(conn)
     client_thread = threading.Thread(target=Handle_Client, args=(conn, addr,group_thread_list,group_char_list), name=f'Client {addr}',daemon=True)
     client_thread.start()
 def Handle_Client(conn, addr,group_list,group_score):
+    '''
+    the runnable function of the client thread
+    :param conn:client socket
+    :param addr:client ip
+    :param group_list:group where the client is registeredred at
+    :param group_score:group of the accumulated chars
+    :return:
+    '''
     global StartFlag
     conn.setblocking(True)
     conn.settimeout(10)
@@ -126,18 +181,28 @@ def Handle_Client(conn, addr,group_list,group_score):
 
 #region Messeages and broadcasts
 def PrepareWelcomeMessage():
-        groupA_names = [x[1] for x in Group_A_threads]
-        groupB_names = [x[1] for x in Group_B_threads]
-        print('')
-        msg = "Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n==\n"
-        for name in groupA_names:
-            msg = msg + name + '\n'
-        msg = msg + "\nGroup 2:\n==\n"
-        for name in groupB_names:
-            msg = msg + name + '\n'
-        msg = msg + "\nStart pressing keys on your keyboard as fast as you can!!"
-        return msg
+    '''
+    helper function to generate the welcome message
+    :return:
+    '''
+    groupA_names = [x[1] for x in Group_A_threads]
+    groupB_names = [x[1] for x in Group_B_threads]
+    print('')
+    msg = "Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n==\n"
+    for name in groupA_names:
+        msg = msg + name + '\n'
+    msg = msg + "\nGroup 2:\n==\n"
+    for name in groupB_names:
+        msg = msg + name + '\n'
+    msg = msg + "\nStart pressing keys on your keyboard as fast as you can!!"
+    return msg
 def GenerateWinningMessage(ScoreA,ScoreB):
+    '''
+    helper function to generate the winning message
+    :param ScoreA: char list of group A
+    :param ScoreB: char list of group B
+    :return:
+    '''
     global Group_A_threads
     global Group_B_threads
     winner=None
@@ -158,6 +223,12 @@ def GenerateWinningMessage(ScoreA,ScoreB):
         message = message + name + '\n'
     return message
 def sendBroadCastMessage(msg,sockets):
+    '''
+    helper function to broadcast message for all over the connected client
+    :param msg: string of the message
+    :param sockets: list of all client sockets
+    :return:
+    '''
     for sock in sockets:
         #print(repr(sock))
         sock.sendall(encode(msg))
@@ -165,6 +236,11 @@ def sendBroadCastMessage(msg,sockets):
 
 #region utils
 def ResetGame(clientSockets):
+    '''
+    helper function to reset the game and close all the sockets
+    :param clientSockets: list of all the client sockets
+    :return:
+    '''
     global Group_A_threads
     global Group_A_receive_chars
     global Group_B_threads
@@ -178,9 +254,20 @@ def ResetGame(clientSockets):
     Group_B_threads = []
     Group_B_receive_chars = []
     sockets=[]
+
 def encode(str):
+    '''
+    function to encode string to UTF-8
+    :param str: strig to be encode
+    :return:
+    '''
     return str.encode('utf-8')
 def decode(data):
+    '''
+    tryin to deccode with several types
+    :param data:
+    :return:
+    '''
     msg=None
     try:
         msg= data.decode('utf-8')
@@ -197,16 +284,37 @@ def decode(data):
 
 #endregion
 def args_parsing():
+    '''
+    helper function to parse arguments from CLI
+    :return:
+    '''
     #Parsing arguments
-    parser = argparse.ArgumentParser(description='Tread Per client version for battle royal')
-    parser.add_argument('-ip',type=str,action="store",default='10.100.102.41',required=False,help='server ip')
+    parser = argparse.ArgumentParser(description='Thread Per client version for battle royal')
     parser.add_argument('-p',type=int,action="store",default=7777,required=False,help='tcp port to listen')
+    parser.add_argument('-env',choices=['local','dev','test'],type=str,action="store",default='local',required=False,help='enviroment')
     args = parser.parse_args()
     return args
 
-if __name__== '__main__':
-    args=args_parsing()
-    if args.ip is None or args.p is None:
+def verify_args(args):
+    '''
+    helper function in order to verify command line arguments
+    :param args: parse argument object
+    :return: server_ip
+    '''
+    if args.env is None or args.p is None:
         print('one missing arguments')
         sys.exit(1)
-    init_Server(args.ip,args.p)
+    if args.env=='dev':
+        server_ip=get_if_addr('eth1')
+    elif args.env == 'test':
+        server_ip = get_if_addr('eth2')
+    else:
+        server_ip=get_if_addr(conf.iface)
+    if server_ip=='0.0.0.0':
+        print('There is problem with the network interface... please verify you in the right environment')
+        sys.exit(1)
+    return server_ip
+if __name__== '__main__':
+    args=args_parsing()
+    server_ip=verify_args(args)
+    init_Server(server_ip,args.p)
